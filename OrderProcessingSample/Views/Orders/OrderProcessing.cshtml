@@ -1,0 +1,138 @@
+﻿@*@model OrderProcessingSample.Models.ViewModels.OrderProcessingViewModel*@
+
+@section Styles{
+    <link href="/lib/font-awesome/css/fontawesome.min.css" rel="stylesheet" />
+    <link href="/lib/font-awesome/css/solid.min.css" rel="stylesheet" />
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md">
+                <label for="exampleDataList" class="form-label">Item Select</label>
+                <input class="form-control" list="datalistOptions" id="exampleDataList" placeholder="Type to search...">
+                <datalist id="datalistOptions">
+                    @{
+                    foreach (SelectListItem item in (IEnumerable<SelectListItem>)ViewData["items"])
+                    {
+                                                                                                                                                <option value="@item.Value">@item.Text</option>
+                    }
+                }
+            </datalist>
+        </div>
+        <div class="col-md">
+            <label class="form-label">Price</label>
+            <input id="price" readonly class="form-control" placeholder="Price"/>
+        </div>
+        <div class="col-md">
+            <label class="form-label">Quantity</label>
+            <input id="qty" class="form-control" placeholder="Qty"/>
+        </div>
+        <div class="col-md">
+            <label class="form-label">Total Cost</label>
+            <input id="tot_cost" class="form-control" readonly placeholder="Cost"/>
+        </div>
+        <div class="col-md">
+            <button class="btn btn-primary btn-lg" type="button" onclick="getitem()"><i class="fa fa-plus"></i> Add</button>
+        </div>
+    </div>
+
+    <br />
+    <br />
+
+    <div class="row">
+        <table id="itemsTable" class="table table-bordered table-striped">
+            <thead>
+                <tr role="row">
+                    <th></th>
+                    <th>ID</th>
+                    <th>Description</th>
+                    <th>Packaging</th>
+                    <th>UnitPrice</th>
+                    <th>Qty</th>
+                    <th>Cost</th>
+                </tr>
+            </thead>
+            <tbody id="itemsBody">
+                
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th></th>
+                    <th>ID</th>
+                    <th>Description</th>
+                    <th>Packaging</th>
+                    <th>UnitPrice</th>
+                    <th>Qty</th>
+                    <th>Cost</th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    <div class="row">
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            <h1 class="me-md-2" type="button"><b>Total</b> : </h1>
+            <h1 id="total">N$ 0.00</h1>
+        </div>
+    </div>
+    <div class="row">
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            <button class="btn btn-primary btn-lg" type="button" onclick="createOrder()">Process Order</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script>
+        var cost = 0;
+        var items = [];
+        function getitem(){
+            document.getElementById("overlay").style.display = "block";
+            var item = {
+                id: $("#exampleDataList").val()
+            }
+            $.post("@Url.Action("GetItem", "Orders")", item, function (res) {
+                var row = "<tr id=\"row_" + res.id + "\"><td><button type=\"button\" class=\"btn btn-sm btn-danger\" onclick=\"removeItem("+res.id+")\"><i class=\"fa-solid fa-trash\"></i></button></td><td>" + res.id
+                +"</td><td>"+res.description
+                +"</td><td>"+res.packaging
+                +"</td><td>"+res.unitPrice
+                +"</td><td>"+($("#qty").val())
+                +"</td><td>"+($("#qty").val()*res.unitPrice)
+                +"</td>"+
+                "</tr>";
+                $("#itemsTable tbody").append(row);
+                items.push({
+                    itemId: res.id,
+                    unitPrice: parseFloat(res.unitPrice),
+                    qty: parseInt($("#qty").val())
+                });
+                cost = cost + $("#qty").val() * res.unitPrice;
+                $("#total").html("N$ " + cost);
+                document.getElementById("overlay").style.display = "none";
+            });
+        }
+
+        function removeItem(itemId){
+            items = $.grep(items, function (e) {
+                return e.itemId != itemId;
+            });
+            $("#row_"+itemId).remove();
+            cost=0;
+            $.each(items, function (item){
+                cost=cost+(items[item].qty*items[item].unitPrice);
+            });
+            
+            $("#total").html("N$ " + cost);
+        }
+
+        function createOrder(){
+            document.getElementById("overlay").style.display = "block";
+            var orderItems = {
+                model:items
+            }
+            $.post("@Url.Action("CreateOrder", "Orders")", orderItems, function (res) {
+                console.log(res);
+                document.getElementById("overlay").style.display = "none";
+            });
+        }
+    </script>
+}
